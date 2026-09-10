@@ -1,0 +1,232 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  width: 360px;
+  background: #0b0f19;
+  color: #f1f5f9;
+  padding: 16px;
+  user-select: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #a855f7, #6366f1, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.btn-studio-primary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.btn-studio-primary:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-studio-primary svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 20px 12px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.dropzone svg {
+  width: 32px;
+  height: 32px;
+  fill: #818cf8;
+  margin-bottom: 6px;
+}
+
+.dropzone-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.dropzone-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-scan {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-scan:hover {
+  color: #a5b4fc;
+}
+
+.media-grid {
+  max-height: 180px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.media-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.media-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.media-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 64px;
+  background: #1e293b;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.media-item:hover {
+  transform: scale(1.04);
+  border-color: #6366f1;
+}
+
+.media-item img, .media-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: #64748b;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.features-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+
+.features-list li svg {
+  width: 12px;
+  height: 12px;
+  fill: #34d399;
+  flex-shrink: 0;
+}

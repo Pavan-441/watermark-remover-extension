@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanMark Studio - AI Watermark Remover</title>
+  <link rel="stylesheet" href="studio.css">
+</head>
+<body>
+  <div class="studio-container">
+    <!-- Studio Header -->
+    <header class="studio-header">
+      <div class="header-left">
+        <div class="logo-badge">
+          <img src="../icons/icon32.png" alt="CleanMark">
+          <span class="logo-text">CleanMark Studio</span>
+        </div>
+        <div id="fileInfoBar" class="file-info-bar" style="display: none;">
+          <span id="fileTypeBadge" class="file-info-badge">IMAGE</span>
+          <span id="fileResolution">3840 x 2160</span>
+          <span style="opacity: 0.4;">|</span>
+          <span id="fileQualityBadge">Lossless 100%</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <input type="file" id="mediaUploadInput" accept="image/*,video/*" style="display: none;">
+        <button id="uploadNewBtn" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          Open Media
+        </button>
+
+        <button id="geminiQuickBtn" class="btn btn-gemini-magic">
+          <svg viewBox="0 0 24 24"><path d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.06 3.47l-1.77-1.77 1.41-1.41 1.77 1.77-1.41 1.41z"/></svg>
+          ✨ 1-Click Remove Gemini Watermark
+        </button>
+
+        <button id="compareToggleBtn" class="btn btn-secondary" style="display: none;">
+          <svg viewBox="0 0 24 24"><path d="M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v-2H5V5h5V3zm4 0v2h5v14h-5v2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-5z"/></svg>
+          Compare Before/After
+        </button>
+
+        <button id="downloadBtn" class="btn btn-success" disabled>
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Download Clean Media
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="studio-main">
+      <!-- Left Controls Sidebar -->
+      <aside class="studio-sidebar">
+        <!-- Tools Section -->
+        <div class="sidebar-section">
+          <div class="section-label">Removal Tools</div>
+          <div class="tools-grid">
+            <button id="toolGemini" class="tool-btn active" title="Smart Gemini Watermark Tool">
+              <svg viewBox="0 0 24 24"><path d="M12 2L9.5 8.5 3 11l6.5 2.5L12 20l2.5-6.5L21 11l-6.5-2.5z"/></svg>
+              <span>Gemini Auto</span>
+            </button>
+            <button id="toolBox" class="tool-btn" title="Rectangle Box Selection">
+              <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5z"/></svg>
+              <span>Box Select</span>
+            </button>
+            <button id="toolBrush" class="tool-btn" title="Freehand Brush">
+              <svg viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41z"/></svg>
+              <span>Magic Brush</span>
+            </button>
+            <button id="toolEraser" class="tool-btn" title="Erase Mask Selection">
+              <svg viewBox="0 0 24 24"><path d="M15.14 3c-.76 0-1.52.29-2.09.88L3.88 13.06c-1.17 1.17-1.17 3.07 0 4.24l3.77 3.77c.59.59 1.35.88 2.12.88.76 0 1.53-.29 2.12-.88l9.17-9.18c1.17-1.17 1.17-3.07 0-4.24l-3.83-3.83c-.58-.59-1.34-.88-2.09-.88z"/></svg>
+              <span>Mask Eraser</span>
+            </button>
+          </div>
+
+          <div id="brushSizeGroup" class="form-group" style="display: none;">
+            <label>Brush Radius: <span id="brushSizeVal" class="slider-val">24px</span></label>
+            <div class="slider-group">
+              <input type="range" id="brushSizeInput" min="5" max="150" value="24">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button id="toggleMaskVisibilityBtn" class="btn btn-secondary" style="flex: 1; font-size: 11px;">
+              👁️ <span id="maskVisibilityLabel">Hide Mask (See Clean)</span>
+            </button>
+            <button id="clearMaskBtn" class="btn btn-secondary" style="flex: 1; font-size: 11px;">
+              ✖ Clear Mask
+            </button>
+          </div>
+        </div>
+
+        <!-- Presets Section -->
+        <div class="sidebar-section">
+          <div class="section-label">Watermark Position Preset</div>
+          <div class="form-group">
+            <label for="presetSelect">Location Preset</label>
+            <select id="presetSelect">
+              <option value="gemini-auto" selected>✨ Auto-Detect Gemini Sparkle</option>
+              <option value="gemini-vertical">Gemini Video (Vertical 9:16 Shorts/Veo)</option>
+              <option value="gemini-corner">Gemini Image / Standard Corner</option>
+              <option value="bottom-right">Bottom-Right Corner Badge</option>
+              <option value="bottom-left">Bottom-Left Corner Badge</option>
+              <option value="top-right">Top-Right Corner Badge</option>
+              <option value="top-left">Top-Left Corner Badge</option>
+              <option value="custom">Custom Manual Selection</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Watermark Size: <span id="badgeSizeVal" class="slider-val">100px</span></label>
+            <div class="slider-group">
+              <input type="range" id="badgeSizeInput" min="40" max="250" value="100">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Mask Expansion (Feather): <span id="featherVal" class="slider-val">4px</span></label>
+            <div class="slider-group">
+              <input type="range" id="featherInput" min="0" max="15" value="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Algorithm Section -->
+        <div class="sidebar-section">
+          <div class="section-label">Inpainting Engine</div>
+          <div class="form-group">
+            <label for="algoSelect">Engine Algorithm</label>
+            <select id="algoSelect">
+              <option value="telea" selected>Fast Marching (Telea) - Clean & Sharp</option>
+              <option value="texture">Texture Synthesis (PatchMatch) - Complex Art</option>
+            </select>
+          </div>
+
+          <button id="processImageBtn" class="btn btn-primary" style="width: 100%;">
+            <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Remove Watermark Now
+          </button>
+        </div>
+
+        <!-- Video Controls Section (Visible only when video is active) -->
+        <div id="videoSidebarSection" class="sidebar-section" style="display: none;">
+          <div class="section-label">Video Export Settings</div>
+          <div class="form-group">
+            <label for="videoBitrateSelect">Encoding Bitrate</label>
+            <select id="videoBitrateSelect">
+              <option value="40000000" selected>Ultra / Lossless Target (40 Mbps)</option>
+              <option value="25000000">High Quality (25 Mbps)</option>
+              <option value="12000000">Balanced (12 Mbps)</option>
+            </select>
+          </div>
+
+          <button id="exportVideoBtn" class="btn btn-primary" style="width: 100%; font-size: 14px; padding: 12px;">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+            Export Watermark-Free Video
+          </button>
+        </div>
+      </aside>
+
+      <!-- Center Viewport -->
+      <div class="studio-center-column">
+        <main id="viewport" class="studio-viewport">
+          <!-- Initial Drop Prompt -->
+          <div id="emptyPrompt" class="studio-empty-prompt">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            <h2>Drag & Drop Image or Video Here</h2>
+            <p>Any resolution (4K, 8K, 1080p, 9:16 Shorts) supported.<br>Zero loss in quality. 100% Client-side privacy.</p>
+            <button id="promptUploadBtn" class="btn btn-primary">Browse Files</button>
+          </div>
+
+          <!-- Canvas Multi-layer Stack -->
+          <div id="canvasWrapper" class="canvas-wrapper" style="display: none;">
+            <canvas id="baseCanvas"></canvas>
+            <canvas id="cleanCanvas"></canvas>
+            <canvas id="maskCanvas"></canvas>
+            <canvas id="overlayCanvas"></canvas>
+
+            <!-- Draggable Split Compare Bar -->
+            <div id="compareSplitBar" class="compare-split-bar" style="display: none;">
+              <div class="compare-split-handle">⇄</div>
+            </div>
+          </div>
+
+          <!-- Hidden Video Decoder & Source -->
+          <video id="sourceVideo" style="display: none;" playsinline crossOrigin="anonymous"></video>
+        </main>
+
+        <!-- DOCKED BOTTOM CONTROL DECK (Never overlaps the video/canvas!) -->
+        <footer id="studioBottomDeck" class="studio-bottom-deck" style="display: none;">
+          <div class="deck-playback-section" id="deckPlaybackSection">
+            <button id="vPlayPauseBtn" class="deck-btn" title="Play/Pause">
+              <svg id="vPlayIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="vPauseIcon" viewBox="0 0 24 24" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button id="vPrevFrameBtn" class="deck-btn" title="Previous Frame">
+              <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+            </button>
+            <button id="vNextFrameBtn" class="deck-btn" title="Next Frame">
+              <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+            </button>
+            <span id="videoTimeDisplay" class="deck-time">00:00.00 / 00:00.00</span>
+          </div>
+
+          <div class="deck-timeline-section" id="deckTimelineSection">
+            <input type="range" id="videoTimeline" class="deck-slider" min="0" max="100" value="0" step="0.01">
+          </div>
+
+          <div class="deck-zoom-section">
+            <button id="zoomOutBtn" class="deck-btn" title="Zoom Out">
+              <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+            </button>
+            <span id="zoomLabel" class="zoom-label">100%</span>
+            <button id="zoomInBtn" class="deck-btn" title="Zoom In">
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            </button>
+            <button id="zoomFitBtn" class="deck-btn" title="Fit to Screen">
+              <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4zm14 0h2v6h-2V6h-4V4h4zM4 14h2v4h4v2H4v-6zm16 4h-4v2h6v-6h-2v4z"/></svg>
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Processing / Exporting Modal -->
+    <div id="progressModal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-spinner"></div>
+        <h3 id="modalTitle" class="modal-title">Processing Watermark...</h3>
+        <p id="modalDesc" class="modal-desc">Synthesizing background pixels with zero loss...</p>
+        <div class="progress-bar-container">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="progressPercent">0%</span>
+          <span id="progressDetails">Please wait</span>
+        </div>
+        <button id="cancelProcessBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../lib/inpainting.js"></script>
+  <script src="../lib/mp4box.bundle.js"></script>
+  <script src="../lib/mp4-muxer.js"></script>
+  <script src="../lib/webm-muxer.js"></script>
+  <script src="../lib/video-processor.js"></script>
+  <script src="studio.js"></script>
+</body>
+</html>
