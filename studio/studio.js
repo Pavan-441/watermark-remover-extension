@@ -7,11 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const emptyPrompt = document.getElementById('emptyPrompt');
   const promptUploadBtn = document.getElementById('promptUploadBtn');
+  const studioContainer = document.querySelector('.studio-container');
   const uploadNewBtn = document.getElementById('uploadNewBtn');
   const mediaUploadInput = document.getElementById('mediaUploadInput');
   const geminiQuickBtn = document.getElementById('geminiQuickBtn');
   const compareToggleBtn = document.getElementById('compareToggleBtn');
+  const openCleanPreviewBtn = document.getElementById('openCleanPreviewBtn');
+  const maximizePreviewBtn = document.getElementById('maximizePreviewBtn');
+  const maximizeBtnText = document.getElementById('maximizeBtnText');
   const downloadBtn = document.getElementById('downloadBtn');
+  const downloadBtnText = document.getElementById('downloadBtnText');
 
   const fileInfoBar = document.getElementById('fileInfoBar');
   const fileTypeBadge = document.getElementById('fileTypeBadge');
@@ -49,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const featherVal = document.getElementById('featherVal');
   const algoSelect = document.getElementById('algoSelect');
   const processImageBtn = document.getElementById('processImageBtn');
+  const processBtnText = document.getElementById('processBtnText');
 
   // Video elements & Bottom Deck
   const sourceVideo = document.getElementById('sourceVideo');
@@ -63,14 +69,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const vPauseIcon = document.getElementById('vPauseIcon');
   const vPrevFrameBtn = document.getElementById('vPrevFrameBtn');
   const vNextFrameBtn = document.getElementById('vNextFrameBtn');
+  const previewCleanVideoBtn = document.getElementById('previewCleanVideoBtn');
   const exportVideoBtn = document.getElementById('exportVideoBtn');
   const videoBitrateSelect = document.getElementById('videoBitrateSelect');
 
-  // Zoom controls
+  // Zoom & Maximize controls
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
   const zoomFitBtn = document.getElementById('zoomFitBtn');
   const zoomLabel = document.getElementById('zoomLabel');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
 
   // Modal
   const progressModal = document.getElementById('progressModal');
@@ -81,6 +89,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressDetails = document.getElementById('progressDetails');
   const cancelProcessBtn = document.getElementById('cancelProcessBtn');
 
+  // Export Success Banner
+  const exportSuccessBanner = document.getElementById('exportSuccessBanner');
+  const bannerText = document.getElementById('bannerText');
+  const bannerPreviewBtn = document.getElementById('bannerPreviewBtn');
+  const dismissBannerBtn = document.getElementById('dismissBannerBtn');
+
+  // Maximized Full-Size Clean Video Quality Inspection Modal
+  const cleanPreviewModal = document.getElementById('cleanPreviewModal');
+  const cleanModalResBadge = document.getElementById('cleanModalResBadge');
+  const cleanModalFpsBadge = document.getElementById('cleanModalFpsBadge');
+  const cleanModalQualityBadge = document.getElementById('cleanModalQualityBadge');
+  const modalCompareToggleBtn = document.getElementById('modalCompareToggleBtn');
+  const modalZoomToggleBtn = document.getElementById('modalZoomToggleBtn');
+  const modalFullscreenBtn = document.getElementById('modalFullscreenBtn');
+  const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+  const closeCleanModalBtn = document.getElementById('closeCleanModalBtn');
+  const cleanModalViewport = document.getElementById('cleanModalViewport');
+  const cleanModalVideoContainer = document.getElementById('cleanModalVideoContainer');
+  const cleanModalVideoOriginal = document.getElementById('cleanModalVideoOriginal');
+  const cleanModalVideoClean = document.getElementById('cleanModalVideoClean');
+  const cleanModalSplitBar = document.getElementById('cleanModalSplitBar');
+  const modalPlayPauseBtn = document.getElementById('modalPlayPauseBtn');
+  const modalPlayIcon = document.getElementById('modalPlayIcon');
+  const modalPauseIcon = document.getElementById('modalPauseIcon');
+  const modalTimeDisplay = document.getElementById('modalTimeDisplay');
+  const modalTimeline = document.getElementById('modalTimeline');
+  const modalMuteBtn = document.getElementById('modalMuteBtn');
+  const speedButtons = document.querySelectorAll('.clean-modal-speed-group .speed-btn');
+
   // Engines
   const inpaintingEngine = new InpaintingEngine();
   let videoProcessor = null;
@@ -88,6 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let mediaType = null; // 'image' | 'video'
   let currentFileName = 'media';
+  let currentFileObject = null;
+  let isMaximized = false;
+  let cleanVideoBlob = null;
+  let cleanVideoBlobUrl = null;
+  let lastExportedVideoBlobUrl = null;
+  let cleanVideoWorkspaceElement = null;
+  let modalIsComparing = false;
+  let modalIsZoomed = false;
+  let modalSplitRatio = 0.5;
+  let isDraggingModalSplit = false;
   let nativeWidth = 0;
   let nativeHeight = 0;
   let zoom = 1.0;
@@ -152,8 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function loadMediaFromFile(file) {
-    const isVid = file.type.startsWith('video/');
-    const isImg = file.type.startsWith('image/');
+    const isVid = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|mkv|avi|m4v|3gp|flv)$/i.test(file.name);
+    const isImg = (file.type && file.type.startsWith('image/')) || /\.(png|jpe?g|webp|avif|bmp|svg|gif|tiff?)$/i.test(file.name);
 
     if (!isVid && !isImg) {
       alert('Unsupported file format. Please choose an image or video.');
@@ -167,16 +214,31 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadMediaFromUrl(type, url, name, fileObject = null) {
     mediaType = type;
     currentFileName = name || 'media';
+    currentFileObject = fileObject;
     hasCleanResult = false;
     activeWatermarkBounds = null;
     isComparing = false;
     compareSplitBar.style.display = 'none';
+    cleanVideoBlob = null;
+    cleanVideoBlobUrl = null;
+    if (cleanVideoWorkspaceElement) {
+      cleanVideoWorkspaceElement.src = '';
+    }
+    if (openCleanPreviewBtn) {
+      openCleanPreviewBtn.style.display = 'none';
+    }
+    if (exportSuccessBanner) {
+      exportSuccessBanner.style.display = 'none';
+    }
 
     if (type === 'image') {
       videoSidebarSection.style.display = 'none';
       deckPlaybackSection.style.display = 'none';
       deckTimelineSection.style.display = 'none';
       sourceVideo.pause();
+
+      if (downloadBtnText) downloadBtnText.textContent = 'Download Clean Image';
+      if (processBtnText) processBtnText.textContent = 'Remove Watermark Now';
 
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -198,6 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
       deckPlaybackSection.style.display = 'flex';
       deckTimelineSection.style.display = 'flex';
 
+      if (downloadBtnText) downloadBtnText.textContent = 'Export Clean Video';
+      if (processBtnText) processBtnText.textContent = 'Remove Watermark Now';
+
       sourceVideo.src = url;
       sourceVideo.onloadedmetadata = () => {
         nativeWidth = sourceVideo.videoWidth;
@@ -205,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupCanvases(nativeWidth, nativeHeight);
 
         videoProcessor = new VideoWatermarkProcessor(sourceVideo, inpaintingEngine);
+        videoProcessor.initCanvas(nativeWidth, nativeHeight);
         videoProcessor.setSource(fileObject || url);
         videoTimeline.max = sourceVideo.duration;
 
@@ -217,17 +283,27 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceVideo.onseeked = () => {
         baseCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
         updateVideoTimeDisplay();
-        if (activeWatermarkBounds) {
-          previewVideoFrameClean();
+        if (hasCleanResult) {
+          cleanCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+          const bounds = getActiveWatermarkBounds();
+          if (bounds && videoProcessor) {
+            videoProcessor.processWatermarkOnCanvas(bounds, algoSelect.value, cleanCtx);
+          }
         }
       };
 
       sourceVideo.ontimeupdate = () => {
         videoTimeline.value = sourceVideo.currentTime;
         updateVideoTimeDisplay();
-        baseCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
-        if (activeWatermarkBounds) {
-          previewVideoFrameClean();
+        if (sourceVideo.paused) {
+          baseCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+          if (hasCleanResult) {
+            cleanCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+            const bounds = getActiveWatermarkBounds();
+            if (bounds && videoProcessor) {
+              videoProcessor.processWatermarkOnCanvas(bounds, algoSelect.value, cleanCtx);
+            }
+          }
         }
       };
 
@@ -291,16 +367,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function fitToScreen() {
-    const pad = 48;
-    const vw = viewport.clientWidth - pad;
-    const vh = viewport.clientHeight - pad;
+    if (!nativeWidth || !nativeHeight) return;
+    const pad = 16;
+    const vw = Math.max(100, viewport.clientWidth - pad);
+    const vh = Math.max(100, viewport.clientHeight - pad);
     const scaleX = vw / nativeWidth;
     const scaleY = vh / nativeHeight;
-    zoom = Math.min(scaleX, scaleY, 1.0); // Exact fit: 100% of media is visible!
+    zoom = Math.min(scaleX, scaleY); // Unconstrained by 1.0: preview fills entire available workspace
     panX = 0;
     panY = 0;
     updateTransform();
   }
+
+  // Auto-refit on window resize
+  window.addEventListener('resize', () => {
+    if (nativeWidth && nativeHeight && canvasWrapper && canvasWrapper.style.display !== 'none') {
+      fitToScreen();
+    }
+  });
+
+  // Maximize / Theater View Toggle (Expands preview to full window width)
+  if (maximizePreviewBtn) {
+    maximizePreviewBtn.addEventListener('click', () => {
+      isMaximized = !isMaximized;
+      if (isMaximized) {
+        studioContainer.classList.add('maximized-preview');
+        if (maximizeBtnText) maximizeBtnText.textContent = 'Restore Sidebar';
+      } else {
+        studioContainer.classList.remove('maximized-preview');
+        if (maximizeBtnText) maximizeBtnText.textContent = 'Maximize View';
+      }
+      setTimeout(() => fitToScreen(), 60);
+    });
+  }
+
+  // Fullscreen Inspection Toggle
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    setTimeout(() => fitToScreen(), 100);
+  });
 
   zoomInBtn.addEventListener('click', () => {
     zoom = Math.min(6.0, zoom * 1.25);
@@ -573,6 +687,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  function getActiveWatermarkBounds() {
+    if (activeWatermarkBounds && activeWatermarkBounds.w > 0 && activeWatermarkBounds.h > 0) {
+      return activeWatermarkBounds;
+    }
+    if (!nativeWidth || !nativeHeight) return null;
+
+    // Scan maskCtx to find bounding box and mask
+    const maskImgData = maskCtx.getImageData(0, 0, nativeWidth, nativeHeight);
+    const data = maskImgData.data;
+    let minX = nativeWidth, minY = nativeHeight, maxX = -1, maxY = -1;
+    let count = 0;
+
+    for (let y = 0; y < nativeHeight; y++) {
+      const row = y * nativeWidth * 4;
+      for (let x = 0; x < nativeWidth; x++) {
+        if (data[row + x * 4 + 3] > 20) {
+          count++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (count > 0 && maxX >= minX && maxY >= minY) {
+      const pad = 4;
+      const bx = Math.max(0, minX - pad);
+      const by = Math.max(0, minY - pad);
+      const bw = Math.min(nativeWidth - bx, (maxX - minX + 1) + pad * 2);
+      const bh = Math.min(nativeHeight - by, (maxY - minY + 1) + pad * 2);
+
+      const subMask = new Uint8Array(bw * bh);
+      for (let y = 0; y < bh; y++) {
+        const srcY = by + y;
+        if (srcY >= nativeHeight) continue;
+        const srcRow = srcY * nativeWidth * 4;
+        const dstRow = y * bw;
+        for (let x = 0; x < bw; x++) {
+          const srcX = bx + x;
+          if (srcX >= nativeWidth) continue;
+          if (data[srcRow + srcX * 4 + 3] > 20) {
+            subMask[dstRow + x] = 255;
+          }
+        }
+      }
+
+      activeWatermarkBounds = { x: bx, y: by, w: bw, h: bh, mask: subMask };
+      return activeWatermarkBounds;
+    }
+    return null;
+  }
+
   window.addEventListener('mouseup', (e) => {
     if (!isDrawing) return;
     isDrawing = false;
@@ -587,6 +754,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (bw > 6 && bh > 6) {
         setMaskBox(bx, by, bw, bh);
+      }
+    } else if (currentTool === 'brush' || currentTool === 'eraser') {
+      getActiveWatermarkBounds();
+      if (activeWatermarkBounds) {
+        downloadBtn.disabled = false;
+        if (mediaType === 'video') {
+          previewVideoFrameClean();
+        }
       }
     }
   });
@@ -609,25 +784,65 @@ document.addEventListener('DOMContentLoaded', () => {
     maskCtx.arc(x, y, radius, 0, Math.PI * 2);
     maskCtx.fill();
     maskCtx.restore();
+    activeWatermarkBounds = null;
   }
 
-  // 1-Click Gemini Watermark Removal
-  geminiQuickBtn.addEventListener('click', () => {
-    if (!nativeWidth) {
-      alert('Please open an image or video first.');
-      return;
-    }
-    setActiveTool('gemini');
-    autoDetectAndSetWatermark();
-    if (mediaType === 'image') {
-      processWatermarkRemoval();
-    } else {
-      previewVideoFrameClean();
-      exportCleanVideo();
-    }
+  // 1-Click Gemini Watermark Removal (if element exists)
+  if (geminiQuickBtn) {
+    geminiQuickBtn.addEventListener('click', () => {
+      if (!nativeWidth) {
+        alert('Please open an image or video first.');
+        return;
+      }
+      setActiveTool('gemini');
+      autoDetectAndSetWatermark();
+      triggerWatermarkRemoval();
+    });
+  }
+
+  processImageBtn.addEventListener('click', () => {
+    triggerWatermarkRemoval();
   });
 
-  processImageBtn.addEventListener('click', processWatermarkRemoval);
+  function triggerWatermarkRemoval() {
+    if (mediaType === 'video') {
+      const bounds = getActiveWatermarkBounds();
+      if (!bounds) {
+        alert('Please select or specify the watermark region first.');
+        return;
+      }
+
+      // Precompile plan and preview current frame immediately
+      previewVideoFrameClean();
+
+      // Automatically hide mask selection and bounding box overlay
+      isMaskVisible = false;
+      maskCanvas.classList.add('hidden');
+      overlayCanvas.style.display = 'none';
+      maskVisibilityLabel.textContent = 'Show Mask Selection';
+
+      // Automatically maximize preview to full view
+      studioContainer.classList.add('maximized-preview');
+      isMaximized = true;
+      if (maximizeBtnText) maximizeBtnText.textContent = 'Restore Sidebar';
+      fitToScreen();
+
+      // Enable compare slider and export button
+      compareToggleBtn.style.display = 'inline-flex';
+      downloadBtn.disabled = false;
+      hasCleanResult = true;
+
+      // Start continuous real-time clean playback
+      startPlaybackRenderLoop();
+      sourceVideo.play().catch(() => {});
+    } else {
+      processWatermarkRemoval();
+    }
+  }
+
+  if (previewCleanVideoBtn) {
+    previewCleanVideoBtn.addEventListener('click', triggerWatermarkRemoval);
+  }
 
   // Image Inpainting Processing
   function processWatermarkRemoval() {
@@ -690,6 +905,12 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadBtn.disabled = false;
         compareToggleBtn.style.display = 'inline-flex';
 
+        // Automatically maximize workspace view to full size for immediate quality verification
+        studioContainer.classList.add('maximized-preview');
+        isMaximized = true;
+        if (maximizeBtnText) maximizeBtnText.textContent = 'Restore Sidebar';
+        fitToScreen();
+
         hideModal();
       } catch (err) {
         console.error('Inpainting error:', err);
@@ -736,10 +957,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Real-time Video Frame Inpainting Preview
   function previewVideoFrameClean() {
-    if (!activeWatermarkBounds || !videoProcessor) return;
-    videoProcessor.processFrame(activeWatermarkBounds, algoSelect.value);
-    cleanCtx.drawImage(videoProcessor.canvas, 0, 0);
+    const bounds = getActiveWatermarkBounds();
+    if (!bounds || !nativeWidth || !nativeHeight) return;
+    cleanCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+    if (videoProcessor) {
+      videoProcessor.processWatermarkOnCanvas(bounds, algoSelect.value, cleanCtx);
+    }
     hasCleanResult = true;
+    compareToggleBtn.style.display = 'inline-flex';
+    downloadBtn.disabled = false;
   }
 
   function updateVideoTimeDisplay() {
@@ -755,36 +981,93 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }
 
+  // Real-time smooth video playback render loop (full 60fps)
+  function startPlaybackRenderLoop() {
+    if (!sourceVideo || sourceVideo.paused) return;
+
+    const render = () => {
+      if (sourceVideo.paused || sourceVideo.ended) return;
+      baseCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+      updateVideoTimeDisplay();
+      videoTimeline.value = sourceVideo.currentTime;
+
+      if (hasCleanResult) {
+        cleanCtx.drawImage(sourceVideo, 0, 0, nativeWidth, nativeHeight);
+        const bounds = getActiveWatermarkBounds();
+        if (bounds && videoProcessor) {
+          videoProcessor.processWatermarkOnCanvas(bounds, algoSelect.value, cleanCtx);
+        }
+      }
+
+      if ('requestVideoFrameCallback' in sourceVideo) {
+        sourceVideo.requestVideoFrameCallback(render);
+      } else {
+        requestAnimationFrame(render);
+      }
+    };
+
+    if ('requestVideoFrameCallback' in sourceVideo) {
+      sourceVideo.requestVideoFrameCallback(render);
+    } else {
+      requestAnimationFrame(render);
+    }
+  }
+
+  sourceVideo.addEventListener('play', () => {
+    vPlayIcon.style.display = 'none';
+    vPauseIcon.style.display = 'block';
+    startPlaybackRenderLoop();
+  });
+
+  sourceVideo.addEventListener('pause', () => {
+    vPlayIcon.style.display = 'block';
+    vPauseIcon.style.display = 'none';
+  });
+
+  sourceVideo.addEventListener('ended', () => {
+    vPlayIcon.style.display = 'block';
+    vPauseIcon.style.display = 'none';
+  });
+
   // Video Playback Controls
   vPlayPauseBtn.addEventListener('click', () => {
     if (sourceVideo.paused) {
       sourceVideo.play();
-      vPlayIcon.style.display = 'none';
-      vPauseIcon.style.display = 'block';
     } else {
       sourceVideo.pause();
-      vPlayIcon.style.display = 'block';
-      vPauseIcon.style.display = 'none';
     }
   });
 
   videoTimeline.addEventListener('input', () => {
-    sourceVideo.currentTime = parseFloat(videoTimeline.value);
+    const val = parseFloat(videoTimeline.value);
+    sourceVideo.currentTime = val;
+    if (cleanVideoWorkspaceElement) {
+      cleanVideoWorkspaceElement.currentTime = val;
+    }
   });
 
   vPrevFrameBtn.addEventListener('click', () => {
     sourceVideo.currentTime = Math.max(0, sourceVideo.currentTime - 1/30);
+    if (cleanVideoWorkspaceElement) {
+      cleanVideoWorkspaceElement.currentTime = sourceVideo.currentTime;
+    }
   });
 
   vNextFrameBtn.addEventListener('click', () => {
     sourceVideo.currentTime = Math.min(sourceVideo.duration, sourceVideo.currentTime + 1/30);
+    if (cleanVideoWorkspaceElement) {
+      cleanVideoWorkspaceElement.currentTime = sourceVideo.currentTime;
+    }
   });
 
   // Video Export (Hardware Accelerated Frame-by-Frame WebCodecs MP4 Export)
-  exportVideoBtn.addEventListener('click', exportCleanVideo);
+  if (exportVideoBtn) {
+    exportVideoBtn.addEventListener('click', exportCleanVideo);
+  }
 
   async function exportCleanVideo() {
-    if (!videoProcessor || !activeWatermarkBounds) {
+    const bounds = getActiveWatermarkBounds();
+    if (!videoProcessor || !bounds) {
       alert('Please select or specify the watermark region first.');
       return;
     }
@@ -796,14 +1079,30 @@ document.addEventListener('DOMContentLoaded', () => {
     showModal('Exporting Clean Video...', 'Hardware-accelerated GPU export at 100% native quality...');
     cancelProcessBtn.style.display = 'inline-block';
 
-    const bitrate = parseInt(videoBitrateSelect.value, 10);
+    let bitrate;
+    if (videoBitrateSelect && videoBitrateSelect.value === 'auto') {
+      let srcSize = 0;
+      if (currentFileObject && currentFileObject.size) {
+        srcSize = currentFileObject.size;
+      } else if (videoProcessor && videoProcessor.sourceArrayBuffer) {
+        srcSize = videoProcessor.sourceArrayBuffer.byteLength;
+      }
+      const dur = (sourceVideo && sourceVideo.duration > 0) ? sourceVideo.duration : 10;
+      if (srcSize > 0 && dur > 0) {
+        bitrate = Math.round((srcSize * 8) / dur);
+        bitrate = Math.max(8000000, Math.min(80000000, bitrate));
+      } else {
+        bitrate = 25000000;
+      }
+    } else {
+      bitrate = parseInt(videoBitrateSelect.value, 10) || 25000000;
+    }
 
     try {
       const result = await videoProcessor.exportCleanVideo(
-        activeWatermarkBounds,
+        bounds,
         {
           bitrate,
-          fps: 24, // Matches source video
           mode: algoSelect.value
         },
         (progress) => {
@@ -815,8 +1114,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       hideModal();
 
-      // Download clean MP4 video immediately
+      // Download clean video immediately
       const url = URL.createObjectURL(result.blob);
+      cleanVideoBlob = result.blob;
+      cleanVideoBlobUrl = url;
+      lastExportedVideoBlobUrl = url;
+
       const a = document.createElement('a');
       a.href = url;
       const baseName = currentFileName.replace(/\.[^/.]+$/, '');
@@ -824,7 +1127,22 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+      // Maximize & unobscure preview window for immediate quality check
+      isMaskVisible = false;
+      maskCanvas.classList.add('hidden');
+      overlayCanvas.style.display = 'none';
+      maskVisibilityLabel.textContent = 'Show Mask Selection';
+      compareToggleBtn.style.display = 'inline-flex';
+      studioContainer.classList.add('maximized-preview');
+      isMaximized = true;
+      if (maximizeBtnText) maximizeBtnText.textContent = 'Restore Sidebar';
+      fitToScreen();
+
+      if (exportSuccessBanner) {
+        exportSuccessBanner.style.display = 'block';
+      }
     } catch (err) {
       hideModal();
       if (err.message !== 'Export cancelled by user') {
@@ -833,12 +1151,233 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Maximized Clean Video Quality Inspection Window Logic
+  function openCleanPreviewWindow() {
+    if (!cleanVideoBlobUrl || !cleanPreviewModal) return;
+
+    sourceVideo.pause();
+    vPlayIcon.style.display = 'block';
+    vPauseIcon.style.display = 'none';
+
+    if (cleanModalResBadge) {
+      cleanModalResBadge.textContent = `${nativeWidth} × ${nativeHeight}`;
+    }
+    if (cleanModalFpsBadge) {
+      cleanModalFpsBadge.textContent = '24 FPS';
+    }
+
+    cleanModalVideoClean.src = cleanVideoBlobUrl;
+    cleanModalVideoOriginal.src = sourceVideo.src;
+
+    modalIsComparing = false;
+    modalIsZoomed = false;
+    modalSplitRatio = 0.5;
+    if (cleanModalSplitBar) cleanModalSplitBar.style.display = 'none';
+    cleanModalVideoClean.style.clipPath = '';
+    cleanModalVideoContainer.classList.remove('zoomed-in');
+    if (modalZoomToggleBtn) modalZoomToggleBtn.textContent = '🔍 100% Zoom Check';
+    if (modalCompareToggleBtn) modalCompareToggleBtn.textContent = '⇄ Split Compare';
+
+    cleanPreviewModal.style.display = 'flex';
+
+    cleanModalVideoClean.onloadedmetadata = () => {
+      modalTimeline.max = cleanModalVideoClean.duration;
+      const cur = formatTime(0);
+      const dur = formatTime(cleanModalVideoClean.duration || 0);
+      modalTimeDisplay.textContent = `${cur} / ${dur}`;
+    };
+
+    cleanModalVideoClean.currentTime = 0;
+    cleanModalVideoOriginal.currentTime = 0;
+    cleanModalVideoClean.play().then(() => {
+      if (modalPlayIcon) modalPlayIcon.style.display = 'none';
+      if (modalPauseIcon) modalPauseIcon.style.display = 'block';
+      cleanModalVideoOriginal.play().catch(() => {});
+    }).catch(() => {
+      if (modalPlayIcon) modalPlayIcon.style.display = 'block';
+      if (modalPauseIcon) modalPauseIcon.style.display = 'none';
+    });
+  }
+
+  function closeCleanPreviewWindow() {
+    if (!cleanPreviewModal) return;
+    cleanModalVideoClean.pause();
+    cleanModalVideoOriginal.pause();
+    cleanPreviewModal.style.display = 'none';
+    fitToScreen();
+  }
+
+  if (closeCleanModalBtn) {
+    closeCleanModalBtn.addEventListener('click', closeCleanPreviewWindow);
+  }
+
+  if (cleanPreviewModal) {
+    cleanPreviewModal.addEventListener('click', (e) => {
+      if (e.target === cleanPreviewModal) {
+        closeCleanPreviewWindow();
+      }
+    });
+  }
+
+  if (modalPlayPauseBtn) {
+    modalPlayPauseBtn.addEventListener('click', () => {
+      if (cleanModalVideoClean.paused) {
+        cleanModalVideoClean.play();
+        cleanModalVideoOriginal.play().catch(() => {});
+        if (modalPlayIcon) modalPlayIcon.style.display = 'none';
+        if (modalPauseIcon) modalPauseIcon.style.display = 'block';
+      } else {
+        cleanModalVideoClean.pause();
+        cleanModalVideoOriginal.pause();
+        if (modalPlayIcon) modalPlayIcon.style.display = 'block';
+        if (modalPauseIcon) modalPauseIcon.style.display = 'none';
+      }
+    });
+  }
+
+  cleanModalVideoClean.ontimeupdate = () => {
+    modalTimeline.value = cleanModalVideoClean.currentTime;
+    const cur = formatTime(cleanModalVideoClean.currentTime);
+    const dur = formatTime(cleanModalVideoClean.duration || 0);
+    modalTimeDisplay.textContent = `${cur} / ${dur}`;
+
+    if (Math.abs(cleanModalVideoOriginal.currentTime - cleanModalVideoClean.currentTime) > 0.08) {
+      cleanModalVideoOriginal.currentTime = cleanModalVideoClean.currentTime;
+    }
+  };
+
+  modalTimeline.addEventListener('input', () => {
+    const t = parseFloat(modalTimeline.value);
+    cleanModalVideoClean.currentTime = t;
+    cleanModalVideoOriginal.currentTime = t;
+  });
+
+  speedButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      speedButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const rate = parseFloat(btn.dataset.speed || '1.0');
+      cleanModalVideoClean.playbackRate = rate;
+      cleanModalVideoOriginal.playbackRate = rate;
+    });
+  });
+
+  if (modalMuteBtn) {
+    modalMuteBtn.addEventListener('click', () => {
+      cleanModalVideoClean.muted = !cleanModalVideoClean.muted;
+      modalMuteBtn.style.opacity = cleanModalVideoClean.muted ? '0.5' : '1.0';
+    });
+  }
+
+  if (modalCompareToggleBtn) {
+    modalCompareToggleBtn.addEventListener('click', () => {
+      modalIsComparing = !modalIsComparing;
+      cleanModalSplitBar.style.display = modalIsComparing ? 'block' : 'none';
+      if (modalIsComparing) {
+        modalCompareToggleBtn.textContent = '✓ Split Active';
+        modalSplitRatio = 0.5;
+        updateModalSplitView();
+      } else {
+        modalCompareToggleBtn.textContent = '⇄ Split Compare';
+        cleanModalVideoClean.style.clipPath = '';
+      }
+    });
+  }
+
+  function updateModalSplitView() {
+    if (!modalIsComparing) return;
+    const rect = cleanModalVideoClean.getBoundingClientRect();
+    if (!rect.width) return;
+    const splitX = rect.width * modalSplitRatio;
+    cleanModalSplitBar.style.left = `${Math.round(splitX)}px`;
+    cleanModalVideoClean.style.clipPath = `polygon(0 0, ${splitX}px 0, ${splitX}px 100%, 0 100%)`;
+  }
+
+  if (cleanModalSplitBar) {
+    cleanModalSplitBar.addEventListener('mousedown', (e) => {
+      isDraggingModalSplit = true;
+      e.preventDefault();
+    });
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDraggingModalSplit) return;
+    const rect = cleanModalVideoClean.getBoundingClientRect();
+    if (!rect.width) return;
+    const relX = (e.clientX - rect.left) / rect.width;
+    modalSplitRatio = Math.max(0.01, Math.min(0.99, relX));
+    updateModalSplitView();
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDraggingModalSplit = false;
+  });
+
+  if (modalZoomToggleBtn) {
+    modalZoomToggleBtn.addEventListener('click', () => {
+      modalIsZoomed = !modalIsZoomed;
+      if (modalIsZoomed) {
+        const b = activeWatermarkBounds;
+        if (b && nativeWidth && nativeHeight) {
+          const originX = Math.round(((b.x + b.w / 2) / nativeWidth) * 100);
+          const originY = Math.round(((b.y + b.h / 2) / nativeHeight) * 100);
+          cleanModalVideoContainer.style.transformOrigin = `${originX}% ${originY}%`;
+        } else {
+          cleanModalVideoContainer.style.transformOrigin = '90% 90%';
+        }
+        cleanModalVideoContainer.classList.add('zoomed-in');
+        modalZoomToggleBtn.textContent = '🔍 Reset Zoom';
+      } else {
+        cleanModalVideoContainer.classList.remove('zoomed-in');
+        modalZoomToggleBtn.textContent = '🔍 100% Zoom Check';
+      }
+    });
+  }
+
+  if (modalFullscreenBtn) {
+    modalFullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        cleanPreviewModal.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  }
+
+  if (modalDownloadBtn) {
+    modalDownloadBtn.addEventListener('click', () => {
+      if (cleanVideoBlobUrl) {
+        const a = document.createElement('a');
+        a.href = cleanVideoBlobUrl;
+        const baseName = currentFileName.replace(/\.[^/.]+$/, '');
+        a.download = `${baseName}_clean.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
+  }
+
+  if (openCleanPreviewBtn) {
+    openCleanPreviewBtn.addEventListener('click', openCleanPreviewWindow);
+  }
+
+  if (bannerPreviewBtn) {
+    bannerPreviewBtn.addEventListener('click', openCleanPreviewWindow);
+  }
+
+  if (dismissBannerBtn) {
+    dismissBannerBtn.addEventListener('click', () => {
+      if (exportSuccessBanner) exportSuccessBanner.style.display = 'none';
+    });
+  }
+
   cancelProcessBtn.addEventListener('click', () => {
     if (videoProcessor) videoProcessor.cancelExport();
     hideModal();
   });
 
-  // Download Clean Image Media
+  // Download Clean Image Media or Video
   downloadBtn.addEventListener('click', () => {
     if (mediaType === 'image') {
       // Auto-inpaint if user hasn't pressed the button yet
@@ -855,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
       }, 'image/png');
     } else if (mediaType === 'video') {
       exportCleanVideo();

@@ -43,8 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function handleFile(file) {
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
+    const isImage = (file.type && file.type.startsWith('image/')) || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(file.name);
+    const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|mkv|avi|m4v|3gp|flv)$/i.test(file.name);
 
     if (!isImage && !isVideo) {
       alert('Please select an image or video file.');
